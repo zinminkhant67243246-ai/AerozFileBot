@@ -8,8 +8,6 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL = "@minesaver778"
 CHANNEL_LINK = "https://t.me/minesaver778"
 
-FILE_NAME = "Better_Sounds.mcpack"
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
