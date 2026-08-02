@@ -1,5 +1,4 @@
 import os
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -13,18 +12,8 @@ FILE_NAME = "Better_Sounds.mcpack"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "Join Channel 1 ↗",
-                url=CHANNEL_LINK
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "♻️ Try Again",
-                callback_data="check"
-            )
-        ]
+        [InlineKeyboardButton("Join Channel 1 ↗", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("♻️ Try Again", callback_data="check")]
     ]
 
     await update.message.reply_text(
@@ -45,16 +34,13 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if member.status in ["member", "administrator", "creator"]:
-            await query.message.reply_text(
-                "✅ Joined! ဖိုင်ပို့ပေးနေပါတယ်..."
-            )
+            await query.message.reply_text("✅ Joined! ဖိုင်ပို့ပေးနေပါတယ်...")
 
             with open(FILE_NAME, "rb") as file:
                 await context.bot.send_document(
-                    chat_id=query.message.chat.id,
+                    query.message.chat.id,
                     document=file
                 )
-
         else:
             await query.answer(
                 "❌ Channel ကို အရင် Join လုပ်ပါ!",
@@ -71,8 +57,6 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = Application.builder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(
-    CallbackQueryHandler(check, pattern="^check$")
-)
+app.add_handler(CallbackQueryHandler(check, pattern="^check$"))
 
 app.run_polling()
