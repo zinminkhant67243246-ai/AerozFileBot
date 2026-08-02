@@ -1,29 +1,78 @@
 import os
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
 
-TOKEN = os.getenv("BOT_TOKEN")
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+CHANNEL = "@minesaver778"
+CHANNEL_LINK = "https://t.me/minesaver778"
+
+FILE_NAME = "Better_Sounds.mcpack"
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_document(
-        document="Better_Sounds.mcpack",
-        caption="📦 Better Sounds"
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "Join Channel 1 ↗",
+                url=CHANNEL_LINK
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "♻️ Try Again",
+                callback_data="check"
+            )
+        ]
+    ]
+
+    await update.message.reply_text(
+        "Hey Aero Pixel Craft\n\n"
+        "Please Join All My Update Channels To Use Me!",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is running")
 
-def run_server():
-    port = int(os.getenv("PORT", 10000))
-    HTTPServer(("0.0.0.0", port), HealthHandler).serve_forever()
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-threading.Thread(target=run_server, daemon=True).start()
+    try:
+        member = await context.bot.get_chat_member(
+            CHANNEL,
+            query.from_user.id
+        )
 
-app = Application.builder().token(TOKEN).build()
+        if member.status in ["member", "administrator", "creator"]:
+            await query.message.reply_text(
+                "✅ Joined! ဖိုင်ပို့ပေးနေပါတယ်..."
+            )
+
+            with open(FILE_NAME, "rb") as file:
+                await context.bot.send_document(
+                    chat_id=query.message.chat.id,
+                    document=file
+                )
+
+        else:
+            await query.answer(
+                "❌ Channel ကို အရင် Join လုပ်ပါ!",
+                show_alert=True
+            )
+
+    except Exception:
+        await query.answer(
+            "❌ Channel Join မလုပ်ရသေးပါ!",
+            show_alert=True
+        )
+
+
+app = Application.builder().token(BOT_TOKEN).build()
+
 app.add_handler(CommandHandler("start", start))
+app.add_handler(
+    CallbackQueryHandler(check, pattern="^check$")
+)
+
 app.run_polling()
