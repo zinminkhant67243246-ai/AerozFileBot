@@ -1,12 +1,35 @@
 import os
+import threading
 
+from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 CHANNEL = "@minesaver778"
 CHANNEL_LINK = "https://t.me/minesaver778"
+
+# Join ပြီးရင် ပို့မယ့်ဖိုင်နာမည်
+FILE_NAME = "Your_File.mcpack"
+
+
+# Render Web Service အတွက်
+web = Flask(__name__)
+
+@web.route("/")
+def home():
+    return "Bot is running!"
+
+
+def run_web():
+    port = int(os.getenv("PORT", 10000))
+    web.run(host="0.0.0.0", port=port)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -43,6 +66,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if member.status in ["member", "administrator", "creator"]:
+
             await query.message.reply_text(
                 "✅ Joined! ဖိုင်ပို့ပေးနေပါတယ်..."
             )
@@ -66,11 +90,27 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-app = Application.builder().token(BOT_TOKEN).build()
+def main():
+    threading.Thread(
+        target=run_web,
+        daemon=True
+    ).start()
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(
-    CallbackQueryHandler(check, pattern="^check$")
-)
+    app = Application.builder().token(BOT_TOKEN).build()
 
-app.run_polling()
+    app.add_handler(
+        CommandHandler("start", start)
+    )
+
+    app.add_handler(
+        CallbackQueryHandler(
+            check,
+            pattern="^check$"
+        )
+    )
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
