@@ -10,7 +10,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN =8938593861:AAGlEgHLBaP7LcyUDvQhPm4sQWdhmCW27nA os.getenv("BOT_TOKEN")
 
 CHANNEL = "@minesaver778"
 CHANNEL_LINK = "https://t.me/minesaver778"
@@ -20,7 +20,7 @@ FILE_NAME = "Your_File.mcpack"
 
 
 # Render Web Service အတွက်
-web = Flask(__name__)
+web = Flask(name)
 
 @web.route("/")
 def home():
@@ -112,5 +112,5 @@ def main():
     app.run_polling()
 
 
-if __name__ == "__main__":
+if name == "main":
     main()
