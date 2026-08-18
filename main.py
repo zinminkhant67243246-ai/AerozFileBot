@@ -124,5 +124,40 @@ async def check_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
 
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "🔄 Join Channel 1",
+                    url=CHANNEL_LINK
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "♻️ Try Again",
+                    callback_data="check_join"
+                )
+            ]
+        ]
+
         await query.edit_message_text(
-            "⚠️ Channel Join စ
+            "⚠️ Channel Join စစ်ဆေးရာတွင် အမှားအယွင်းရှိနေပါသည်။ "
+            "ကျေးဇူးပြု၍ Channel ကို အရင် Join ပါ။",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+# =========================
+# MAIN
+# =========================
+
+def main():
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(check_join, pattern="^check_join$"))
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
