@@ -15,8 +15,8 @@ BOT_TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
 CHANNEL = "@minesaver778"
 CHANNEL_LINK = "https://t.me/minesaver778"
 
-# Render Web Service အတွက်
-web = Flask(name)
+# Render Web Service အတွက် (__name__ ကို ပြင်ထားသည်)
+web = Flask(__name__)
 
 @web.route("/")
 def home():
@@ -101,5 +101,6 @@ def main():
     app.run_polling()
 
 
-if name == "main":
+# (__main__ ကို ပြင်ထားသည်)
+if __name__ == "__main__":
     main()
