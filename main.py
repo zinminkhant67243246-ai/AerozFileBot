@@ -9,13 +9,14 @@ from telegram.ext import (
     ContextTypes,
 )
 
-BOT_TOKEN = "8938593861:AAGlEgHLBaP7LcyUDvQhPm4sQWdhmCW27nA"
+# Token အသစ်ကို ထည့်သွင်းပေးထားပါသည်
+BOT_TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
 
 CHANNEL = "@minesaver778"
 CHANNEL_LINK = "https://t.me/minesaver778"
 
-# 🛑 User တွေကို ပို့ပေးချင်တဲ့ Link (Channel ထဲက Post Link ဖြစ်စေ, Download Link ဖြစ်စေ ဒီမှာထည့်ပါ)
-TARGET_LINK = "https://t.me/minesaver778/your_post_id"
+# User တွေကို ပေးချင်တဲ့ Link ကို ဒီမှာ အစားထိုးပါ
+TARGET_LINK = "https://t.me/minesaver778"
 
 # Render Web Service အတွက်
 web = Flask(__name__)
@@ -48,7 +49,7 @@ async def send_join_message(update):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "<i>AERO Pixel Craft</i> ရဲ့ ချိန်နယ်ကို အရင် join ပါ join ပြီးရင် Try Agin ကိုထက်နှိပ်ပါ နှိပ်ပြီးရင် ကိုယ့်လူတို့လိုချင်တာရပါပြီ",
+        "<i>AERO Pixel Craft</i> ရဲ့ Channel ကို အရင် join ပါ။ Join ပြီးရင် Try Again ကို ထပ်နှိပ်ပါ။ နှိပ်ပြီးရင် ကိုယ့်လူတို့ လိုချင်တာ ရပါပြီ။",
         reply_markup=reply_markup,
         parse_mode="HTML"
     )
