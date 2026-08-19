@@ -1,4 +1,5 @@
-import asyncio
+import os
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -7,157 +8,67 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# =========================
-# CONFIG
-# =========================
+TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
 
-BOT_TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
-
-CHANNEL = "@mineminesaver778"
+CHANNEL = "@minesaver778"
 CHANNEL_LINK = "https://t.me/minesaver778"
 
-FILE_PATH = "Chunk Mirror.mcaddon"
+FILE_LINK = "https://your-file-link.com/file.apk"
 
-DELETE_AFTER = 300  # 5 minutes
-
-
-# =========================
-# START
-# =========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "🔄 Join Channel 1",
-                url=CHANNEL_LINK
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "♻️ Try Again",
-                callback_data="check_join"
-            )
-        ]
+        [InlineKeyboardButton("📢 Join Channel", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("✅ I've Joined", callback_data="check_join")]
     ]
 
-    text = (
-        "♻️ ကျေးဇူးပြုပြီး အရင်ဆုံး Channel ကို Join ပါ။\n\n"
-        "Join ပြီးရင် ♻️ Try Again ကိုနှိပ်ပါ။"
-    )
-
     await update.message.reply_text(
-        text,
+        "📦 File ရယူရန် အရင်ဆုံး Channel Join လုပ်ပေးပါ။",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
-# =========================
-# CHECK JOIN
-# =========================
-
 async def check_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     query = update.callback_query
     await query.answer()
-
-    user_id = query.from_user.id
 
     try:
         member = await context.bot.get_chat_member(
             CHANNEL,
-            user_id
+            query.from_user.id
         )
 
         if member.status in ["member", "administrator", "creator"]:
-
-            await query.edit_message_text(
-                "✅ Channel Join ပြီးပါပြီ။\n"
-                "📦 File ပို့နေပါတယ်..."
-            )
-
-            # Send file
-            message = await context.bot.send_document(
-                chat_id=user_id,
-                document=open(FILE_PATH, "rb"),
-                caption=(
-                    "📦 File ရပါပြီ။\n\n"
-                    "⚠️ ဒီ File Message ကို 5 မိနစ်နောက် "
-                    "အလိုအလျောက်ဖျက်ပါမယ်။"
-                )
-            )
-
-            # Delete after 5 minutes
-            await asyncio.sleep(DELETE_AFTER)
-
-            try:
-                await context.bot.delete_message(
-                    chat_id=user_id,
-                    message_id=message.message_id
-                )
-            except Exception:
-                pass
-
-        else:
-
             keyboard = [
-                [
-                    InlineKeyboardButton(
-                        "🔄 Join Channel 1",
-                        url=CHANNEL_LINK
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "♻️ Try Again",
-                        callback_data="check_join"
-                    )
-                ]
+                [InlineKeyboardButton(
+                    "📥 Download File",
+                    url=FILE_LINK
+                )]
             ]
 
             await query.edit_message_text(
-                "❌ Channel ကို မ Join ရသေးပါ။\n"
-                "အရင် Join ပြီးမှ Try Again နှိပ်ပါ။",
+                "✅ Channel Join ဖြစ်ပါတယ်!\n\n"
+                "အောက်က Download ခလုတ်ကိုနှိပ်ပြီး File ရယူနိုင်ပါတယ်။",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-    except Exception as e:
+        else:
+            await query.answer(
+                "❌ Channel ကို အရင် Join လုပ်ပါ!",
+                show_alert=True
+            )
 
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "🔄 Join Channel 1",
-                    url=CHANNEL_LINK
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "♻️ Try Again",
-                    callback_data="check_join"
-                )
-            ]
-        ]
-
-        await query.edit_message_text(
-            "⚠️ Channel Join စစ်ဆေးရာတွင် အမှားအယွင်းရှိနေပါသည်။ "
-            "ကျေးဇူးပြု၍ Channel ကို အရင် Join ပါ။",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+    except Exception:
+        await query.answer(
+            "❌ Channel Join စစ်လို့မရပါ။ Bot ကို Channel ထဲ Admin ထည့်ထားပါ။",
+            show_alert=True
         )
 
 
-# =========================
-# MAIN
-# =========================
+app = Application.builder().token(TOKEN).build()
 
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(check_join, pattern="^check_join$"))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(check_join, pattern="^check_join$"))
-
-    app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
+print("Bot is running...")
+app.run_polling()
