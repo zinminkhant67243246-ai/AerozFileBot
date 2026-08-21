@@ -1,8 +1,7 @@
 import os
+import threading
 from flask import Flask
-from threading import Thread
-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -10,118 +9,97 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# သင့်ရဲ့ Bot Token
+# Token အသစ်ကို ထည့်သွင်းပေးထားပါသည်
 BOT_TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
 
-# Channel စာရင်း
-CHANNELS = [
-    ("MineSaver", "@minesaver778"),
-    ("ModFile", "@modfile888"),
-]
+CHANNEL = "@minesaver778"
+CHANNEL_LINK = "https://t.me/minesaver778"
 
-# ဥပမာ - Link ကနေ ဝင်လာရင် ပို့ပေးမယ့် ဖိုင်
-FILE_NAME = "Your_File.mcpack"
+# User တွေကို ပေးချင်တဲ့ Link ကို ဒီမှာ အစားထိုးပါ
+TARGET_LINK = "https://t.me/minesaver778"
 
-app = Flask(__name__)
+# Render Web Service အတွက်
+web = Flask(__name__)
 
-@app.route("/")
+@web.route("/")
 def home():
     return "Bot is running!"
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    web.run(host="0.0.0.0", port=port)
 
-# User က Channel တွေ join ပြီးပြီလား စစ်ဆေးသည့် function
-async def check_joined(user_id, bot):
-    for name, channel in CHANNELS:
-        try:
-            member = await bot.get_chat_member(channel, user_id)
-            if member.status not in ["member", "administrator", "creator"]:
-                return False
-        except Exception:
-            return False
-    return True
-
-# Channel Join ရမယ့် ခလုတ်များ
-def buttons():
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "Join MineSaver ↗",
-                url="https://t.me/minesaver778"
-            ),
-            InlineKeyboardButton(
-                "Join ModFile ↗",
-                url="https://t.me/modfile888"
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                "♻️ Try Again",
-                callback_data="check_join"
-            )
-        ]
-    ]
-    return InlineKeyboardMarkup(keyboard)
-
-# /start နဲ့ ဝင်လာတဲ့အခါ (Link ကနေဖြစ်စေ၊ ပုံမှန်ဖြစ်စေ) စစ်ဆေးခြင်း
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Start Command
+async def start(update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    bot = context.bot
+    
+    try:
+        member = await context.bot.get_chat_member(chat_id=CHANNEL, user_id=user_id)
+        if member.status in ["left", "kicked"]:
+            await send_join_message(update)
+        else:
+            await send_target_link(update)
+    except Exception:
+        await send_join_message(update)
 
-    # Channel တွေ join ပြီးပြီလား အရင်စစ်မယ်
-    joined = await check_joined(user_id, bot)
+async def send_join_message(update):
+    keyboard = [
+        [InlineKeyboardButton("📢 Join Channel 1", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("♻️ Try Again", callback_data="check_join")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "<i>AERO Pixel Craft</i> ရဲ့ Channel ကို အရင် join ပါ။ Join ပြီးရင် Try Again ကို ထပ်နှိပ်ပါ။ နှိပ်ပြီးရင် ကိုယ့်လူတို့ လိုချင်တာ ရပါပြီ။",
+        reply_markup=reply_markup,
+        parse_mode="HTML"
+    )
 
-    if not joined:
-        # မ join ရသေးရင် Channel Join ခိုင်းတဲ့ စာနဲ့ ခလုတ်ပဲ ပြမယ် (ဖိုင်မပို့ပါ)
-        text = (
-            "⚠️ ဖိုင်ကို ရယူရန် အောက်ပါ Channel နှစ်ခုစလုံးကို အရင် join ပေးပါ။\n\n"
-            "Join ပြီးရင် ♻️ Try Again ကို နှိပ်ပါ။"
-        )
-        await update.message.reply_text(text, reply_markup=buttons())
-    else:
-        # Join ပြီးသားဆိုရင် ဖိုင်ကို ပို့ပေးမယ်
-        args = context.args
-        if args:
-            file_code = args[0] # Link ထဲပါလာတဲ့ code ကို ယူသုံးလို့ရပါတယ်
-            
-        await update.message.reply_document(
-            document=FILE_NAME,
-            caption="ကျေးဇူးတင်ပါတယ်! သင်တောင်းဆိုထားတဲ့ File ကို ပို့ပေးလိုက်ပါပြီ။"
-        )
-
-# Try Again ခလုတ်နှိပ်တဲ့အခါ စစ်ဆေးမည့် function
-async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def button_callback(update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     user_id = query.from_user.id
-    joined = await check_joined(user_id, context.bot)
+    
+    if query.data == "check_join":
+        try:
+            member = await context.bot.get_chat_member(chat_id=CHANNEL, user_id=user_id)
+            if member.status in ["left", "kicked"]:
+                await query.edit_message_text("❌ ကျေးဇူးပြု၍ Channel ကို အရင် Join ပေးပါ။")
+            else:
+                await query.message.delete()
+                await send_target_link_callback(query, context)
+        except Exception:
+            await query.edit_message_text("❌ Channel စစ်ဆေးရာတွင် အမှားအယွင်းရှိနေပါသည်။ ကျေးဇူးပြု၍ ထပ်ကြိုးစားပါ။")
 
-    if not joined:
-        await query.message.edit_text(
-            "❌ Channel တွေ အားလုံးကို မ join ရသေးပါဘူး။\n"
-            "Channel တွေ join ပြီးမှ Try Again ကို ထပ်နှိပ်ပါ။",
-            reply_markup=buttons()
-        )
-    else:
-        await query.message.delete()
-        await context.bot.send_document(
-            chat_id=user_id,
-            document=FILE_NAME,
-            caption="ကျေးဇူးတင်ပါတယ်! သင့်ရဲ့ File ကို ပို့ပေးလိုက်ပါပြီ။"
-        )
+async def send_target_link(update):
+    keyboard = [
+        [InlineKeyboardButton("📥 လိုချင်တာယူရန် (Download)", url=TARGET_LINK)]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "✅ ကျေးဇူးတင်ပါတယ်! သင် Join ပြီးဖြစ်ပါ၍ အောက်ပါခလုတ်ကိုနှိပ်ပြီး ရယူနိုင်ပါပြီ -",
+        reply_markup=reply_markup
+    )
+
+async def send_target_link_callback(query, context):
+    keyboard = [
+        [InlineKeyboardButton("📥 လိုချင်တာယူရန် (Download)", url=TARGET_LINK)]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text="✅ ကျေးဇူးတင်ပါတယ်! သင် Join ပြီးဖြစ်ပါ၍ အောက်ပါခလုတ်ကိုနှိပ်ပြီး ရယူနိုင်ပါပြီ -",
+        reply_markup=reply_markup
+    )
 
 def main():
-    t = Thread(target=run_web)
+    t = threading.Thread(target=run_web)
     t.start()
-
+    
     application = Application.builder().token(BOT_TOKEN).build()
-
+    
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(check, pattern="check_join"))
-
+    application.add_handler(CallbackQueryHandler(button_callback))
+    
     application.run_polling()
 
 if __name__ == "__main__":
