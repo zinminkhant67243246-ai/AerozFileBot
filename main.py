@@ -10,15 +10,16 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# ထည့်သွင်းပေးလိုက်သော Bot Token
+# သင့်ရဲ့ Bot Token
 BOT_TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
 
-# Channel စာရင်း (Channel 2 ခုလုံးထည့်သွင်းထားသည်)
+# Channel စာရင်း (Channel တွေရဲ့ Username ကို ဒီမှာ ထည့်ပါ)
 CHANNELS = [
     ("MineSaver", "@minesaver778"),
     ("ModFile", "@modfile888"),
 ]
 
+# ပို့ပေးမယ့် ဖိုင်နာမည် (Hosting ထဲမှာရှိတဲ့ ဖိုင်နာမည်နဲ့ တူရပါမယ်)
 FILE_NAME = "Your_File.mcpack"
 
 app = Flask(__name__)
@@ -31,6 +32,7 @@ def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
+# User က Channel တွေ join ပြီးပြီလား စစ်ဆေးသည့် function
 async def check_joined(user_id, bot):
     for name, channel in CHANNELS:
         try:
@@ -41,6 +43,7 @@ async def check_joined(user_id, bot):
             return False
     return True
 
+# Channel Join ရမယ့် ခလုတ်များ
 def buttons():
     keyboard = [
         [
@@ -62,6 +65,7 @@ def buttons():
     ]
     return InlineKeyboardMarkup(keyboard)
 
+# /start ခေါ်လိုက်ရင် ပထမဆုံး ပေါ်လာမည့် ပုံစံ (File ချက်ချင်း မပို့ပါ)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "File ရယူရန် အောက်ပါ Channel နှစ်ခုစလုံးကို join ပေးပါ။\n"
@@ -72,6 +76,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=buttons()
     )
 
+# Try Again ခလုတ်နှိပ်တဲ့အခါ စစ်ဆေးမည့် function
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -79,12 +84,14 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     joined = await check_joined(query.from_user.id, context.bot)
 
     if not joined:
+        # Join မပြီးသေးရင် စာသားနဲ့ ခလုတ်ကို ဆက်ပြထားမယ်
         await query.message.edit_text(
-            "File ရယူရန် Channel အားလုံးကို join ပေးပါ။\n"
-            "Join ပြီးမှ Try Again ကို ထပ်နှိပ်ပါ။",
+            "❌ Channel တွေ အားလုံးကို မ join ရသေးပါဘူး။\n"
+            "File ရယူရန် Channel အားလုံးကို join ပြီးမှ Try Again ကို ထပ်နှိပ်ပါ။",
             reply_markup=buttons()
         )
     else:
+        # Join ပြီးသွားမှသာ ဖိုင်ကို ပို့ပေးမယ်
         await query.message.delete()
         await context.bot.send_document(
             chat_id=query.from_user.id,
@@ -93,7 +100,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 def main():
-    # Flask ကို Background Thread နဲ့ Run ခြင်း (Render / Koyeb စတဲ့ hosting တွေအတွက်)
+    # Flask Web Server ကို Background Thread နဲ့ Run ခြင်း
     t = Thread(target=run_web)
     t.start()
 
