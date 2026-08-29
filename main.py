@@ -1,96 +1,47 @@
-import os
-import threading
-import asyncio
-from flask import Flask
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes,
-)
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
-# =========================
-# CONFIG
-# =========================
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-BOT_TOKEN = "8974572676:AAFiA3Lkk-MZz9ScNafkKqpwkwE9MUs8wR0"
+# သင်ပေးထားသော Bot Token ကို တိုက်ရိုက်ထည့်သွင်းထားပါသည်
+TOKEN = "8177264166:AAHXJ2W9ALLq6qvzPqFWy4PljVtHw9jaoVo"
 
-CHANNEL = "@minesaver778"
-CHANNEL_LINK = "https://t.me/minesaver778"
+# Rule 2 အရ တားမြစ်လိုသော စကားလုံးများ
+BANNED_WORDS = ["18+", "adult", "sex", "porn", "အရွယ်မရောက်သေးသူ"]
 
-# ပို့ပေးမယ့် ဖိုင်နာမည် (GitHub repository ထဲမှာ ဒီနာမည်အတိုင်း ရှိရပါမယ်)
-FILE_PATH = "Chunk Mirror.mcaddon"
+async def check_channel_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.channel_post or update.message
+    if not message:
+        return
 
-DELETE_AFTER = 300  # ၅ မိနစ် (စက္ကန့် ၃၀၀)
+    # Rule 4: အခြား Channel / နေရာမှ Forward လုပ်ထားသော ပို့စ်ဖြစ်ပါက ဖျက်မည်
+    if message.forward_origin or message.forward_from_chat or message.forward_from:
+        try:
+            await message.delete()
+            logging.info("Rule 4 ချိုးဖောက်သဖြင့် Forward လုပ်ထားသော ပို့စ်ကို ဖျက်လိုက်ပါပြီ။")
+            return
+        except Exception as e:
+            logging.error(f"Forward ပို့စ်ဖျက်ရာတွင် အမှားအယွင်း ရှိသည်: {e}")
+            return
 
+    # Rule 2: စာသားများထဲတွင် မသင့်လျော်သော စကားလုံးများ ပါဝင်ခြင်း ရှိမရှိ စစ်ဆေးမည်
+    text = message.text or message.caption
+    if text:
+        text_lower = text.lower()
+        for word in BANNED_WORDS:
+            if word in text_lower:
+                try:
+                    await message.delete()
+                    logging.info(f"Rule 2 ချိုးဖောက်သဖြင့် ပို့စ်ကို ဖျက်လိုက်ပါပြီ (အကြောင်းပြချက်: '{word}')")
+                except Exception as e:
+                    logging.error(f"ပို့စ်ဖျက်ရာတွင် အမှားအယွင်း ရှိသည်: {e}")
+                break
 
-# =========================
-# RENDER WEB SERVICE (Keep Alive)
-# =========================
+def main():
+    application = ApplicationBuilder().token(TOKEN).build()
+    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, check_channel_rules))
+    application.run_polling()
 
-web = Flask(__name__)
-
-@web.route("/")
-def home():
-    return "Bot is running!"
-
-def run_web():
-    port = int(os.environ.get("PORT", 10000))
-    web.run(host="0.0.0.0", port=port)
-
-
-# =========================
-# START COMMAND
-# =========================
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    
-    try:
-        member = await context.bot.get_chat_member(chat_id=CHANNEL, user_id=user_id)
-        if member.status in ["left", "kicked"]:
-            await send_join_message(update)
-        else:
-            await send_and_delete_file(update.message, context, user_id)
-    except Exception:
-        await send_join_message(update)
-
-async def send_join_message(update):
-    keyboard = [
-        [InlineKeyboardButton("📢 Join Channel", url=CHANNEL_LINK)],
-        [InlineKeyboardButton("♻️ Try Again", callback_data="check_join")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    text = (
-        "<i>AERO Pixel Craft</i> channel (ချန်နယ်)ကို အရင်ဆုံး join ပေးပါ။\n"
-        "join ပြီးပါက try again ကိုထပ်နှိပ်ပြီးရင် file ရပါပြီ။"
-    )
-    await update.message.reply_text(
-        text,
-        reply_markup=reply_markup,
-        parse_mode="HTML"
-    )
-
-
-# =========================
-# CHECK JOIN & SEND FILE
-# =========================
-
-async def check_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    user_id = query.from_user.id
-
-    try:
-        member = await context.bot.get_chat_member(chat_id=CHANNEL, user_id=user_id)
-        
-        if member.status in ["member", "administrator", "creator"]:
-            await query.message.delete()
-            await send_and_delete_file_callback(query, context, user_id)
-        else:
-            keyboard = [
-                [InlineKeyboardButton("📢 Join Channel", url=CHANNEL_LINK)],
-                [InlineKeyboardButton("♻️ Try Again", callback_data="check_join")]
-            ]
-            reply
+if __name__ == '__main__':
+    main()
