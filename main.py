@@ -1,47 +1,34 @@
-import logging
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+import time
+from pyrogram import Client, filters
+from pyrogram.types import Message
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+API_ID = 12345678  # my.telegram.org မှ api_id ကို ဒီမှာထည့်ပါ
+API_HASH = "your_api_hash"  # my.telegram.org မှ api_hash ကို ဒီမှာထည့်ပါ
+BOT_TOKEN = "8177264166:AAHXJ2W9ALLq6qvzPqFWy4PljVtHw9jaoVo"
+OWNER_ID = 6408752129  # သင့်ရဲ့ User ID ထည့်ပြီးပါပြီ
 
-# သင်ပေးထားသော Bot Token ကို တိုက်ရိုက်ထည့်သွင်းထားပါသည်
-TOKEN = "8177264166:AAHXJ2W9ALLq6qvzPqFWy4PljVtHw9jaoVo"
+app = Client("AeroRulesBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Rule 2 အရ တားမြစ်လိုသော စကားလုံးများ
-BANNED_WORDS = ["18+", "adult", "sex", "porn", "အရွယ်မရောက်သေးသူ"]
+last_post_time = 0
 
-async def check_channel_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.channel_post or update.message
-    if not message:
+@app.on_message(filters.channel & ~filters.service)
+def check_channel_rules(client: Client, message: Message):
+    global last_post_time
+    chat_id = message.chat.id
+    user_id = message.from_user.id if message.from_user else None
+    text = message.text or message.caption or ""
+
+    if not text.startswith("#") and user_id != OWNER_ID:
+        client.delete_messages(chat_id, message.id)
+        client.send_message(chat_id, "⚠️ စကားပြောလိုပါက ရှေ့မှ `#` ခံပေးပါရန်။ ပို့စ်ကို ဖျက်သိမ်းလိုက်ပါပြီ။")
         return
 
-    # Rule 4: အခြား Channel / နေရာမှ Forward လုပ်ထားသော ပို့စ်ဖြစ်ပါက ဖျက်မည်
-    if message.forward_origin or message.forward_from_chat or message.forward_from:
-        try:
-            await message.delete()
-            logging.info("Rule 4 ချိုးဖောက်သဖြင့် Forward လုပ်ထားသော ပို့စ်ကို ဖျက်လိုက်ပါပြီ။")
+    current_time = time.time()
+    if user_id != OWNER_ID:
+        if current_time - last_post_time < 3600:  
+            client.delete_messages(chat_id, message.id)
+            client.send_message(chat_id, "⚠️ စည်းကမ်းချက်အရ ပို့စ်များကို (၁) နာရီခြားမှသာ တင်ခွင့်ရှိပါသည်။ ပို့စ်ကို ဖျက်လိုက်ပါပြီ။")
             return
-        except Exception as e:
-            logging.error(f"Forward ပို့စ်ဖျက်ရာတွင် အမှားအယွင်း ရှိသည်: {e}")
-            return
+        last_post_time = current_time
 
-    # Rule 2: စာသားများထဲတွင် မသင့်လျော်သော စကားလုံးများ ပါဝင်ခြင်း ရှိမရှိ စစ်ဆေးမည်
-    text = message.text or message.caption
-    if text:
-        text_lower = text.lower()
-        for word in BANNED_WORDS:
-            if word in text_lower:
-                try:
-                    await message.delete()
-                    logging.info(f"Rule 2 ချိုးဖောက်သဖြင့် ပို့စ်ကို ဖျက်လိုက်ပါပြီ (အကြောင်းပြချက်: '{word}')")
-                except Exception as e:
-                    logging.error(f"ပို့စ်ဖျက်ရာတွင် အမှားအယွင်း ရှိသည်: {e}")
-                break
-
-def main():
-    application = ApplicationBuilder().token(TOKEN).build()
-    application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, check_channel_rules))
-    application.run_polling()
-
-if __name__ == '__main__':
-    main()
+app.run()
